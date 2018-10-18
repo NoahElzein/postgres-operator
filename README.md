@@ -85,6 +85,8 @@ This Postgres operator is completely based off of Cloud-Ark's [Postgres Custom C
 Go to AWS and create an EC2 instance with these specifications:
 - Ubuntu 18.04 image
 - m5d.xlarge instance
+- A minimum requirement of 16GB of RAM is required. The m5d.xlarge satisfies this requirement and offers around 150GB
+of SSD storage which should suffice. 
 
 ## Setup Kubernetes on EC2 Instance and make sure it works
 Follow the article referred to above for detailed steps in initializing Kubernetes on your AWS instance.
@@ -102,9 +104,9 @@ Right before the above line, insert this code:
 ```
 urlPath := req.URL.String()
 
-if strings.Contains(urlPath, "crontab") {
+if strings.Contains(urlPath, "postgres") {
       glog.Infof("==========================================================")
-      glog.Infof("Hello hello crontabs")                
+      glog.Infof("Hello hello Postgreses")                
       glog.Infof("==========================================================")
 }
 ```
@@ -123,13 +125,13 @@ We need to install two dependencies for this repo.
 
 [lib/pq](https://github.com/lib/pq)
 
-Clone the above repo under the guthub.com folder.
+Clone the above repo under the github.com folder.
 
 ```
 git clone https://github.com/lib/pq.git
 ```
 
-We also need to install the Postgres command line tool:
+OPTIONAL: You can install the Postgres command line tool to verify that Postgres container is running on Kubernetes:
 
 ```
 sudo apt-get install postgresql postgresql-contrib
@@ -163,6 +165,8 @@ Now it is time to begin the experiment:
 
 The way we will measure performance of the library is based on the number of API calls that appear over a period of time during experimentation. The reason for this is because at the moment there is no way to differentiate between Resync API calls and API calls resulting from Library calls in Postgrescontroller.
 
+To begin the experiment, run the Postgres Operator as defined by the steps above. 
+
 The format I followed was a 5 minute interval involving creation of DB as well as Users in the Postgrescontroller.
 
 Minute 0: Turn on Kubernetes cluster and record calls.
@@ -188,7 +192,7 @@ Minute 5: Conclude experiment.
 
 We can run the same experiment on the custom controller.
 
-Clone this repository [Custom Controller](https://github.com/cloud-ark/kubeplus/tree/master/postgres-crd):
+Clone this repository [Custom Controller](https://github.com/cloud-ark/kubeplus/tree/master/postgres-crd-v2):
 
 ```
 git clone https://github.com/cloud-ark/kubeplus/tree/master/postgres-crd.git
@@ -198,10 +202,20 @@ Follow the steps outlined in the Github repo. No major changes are required.
 
 Perform the same experiment on the Custom Controller.
 
-## Results
+## Observations
 
-The custom controller resulted in 37-39 API calls when performed on average.
+Before running experiment:
 
-The Postgres Operator resulted in 54-56 API calls when perfomed on average.
+Before running the experiments, some observations that encouraged the running of these experiments were:
+
+* Implementation of SDK library functions (sdk.Get(), sdk.Create(), ...) used clientsets instead of Listers. This meant that a client side cache was not being utilized.
+
+* The Base Sample Controller made use of Listers which are essentially caches that allow developers to cut on overhead costs. 
+
+Extra Observation:
+
+While running the experiment originally, I faced a challenge in dealing with circulating events. This involved events that kept circulating in the queue even after being dealt with. This added unnecessary overhead and I had to manually code in a way to ignore this event from circulating. (Relevant issues [Issue #335](https://github.com/operator-framework/operator-sdk/issues/335), [Issue 268](https://github.com/operator-framework/operator-sdk/issues/268))
+
+One way I also found to fix this is to set the resyncPeriod to 0 in the main.go file.
 
 
