@@ -200,7 +200,7 @@ git clone https://github.com/cloud-ark/kubeplus/tree/master/postgres-crd.git
 
 Follow the steps outlined in the Github repo. No major changes are required. 
 
-Perform the same experiment on the Custom Controller.
+Perform the same experiment on the Sample Postgres Controller.
 
 ## Observations
 
